@@ -1,0 +1,55 @@
+{{$domain := "http://123.6.183.22:9999"}} {{/* 注意：这里去掉了末尾的斜杠 */}}
+#### {{if $event.IsRecovered}}<font color="#008800">✅ {{$event.RuleName}}</font>{{else}}<font color="#FF0000">🚨 {{$event.RuleName}}</font>{{end}}
+---
+{{$time_duration := sub now.Unix $event.FirstTriggerTime }}{{if $event.IsRecovered}}{{$time_duration = sub $event.LastEvalTime $event.FirstTriggerTime }}{{end}}
+
+- **当前状态**: {{if $event.IsRecovered}}<font color="#008800">已恢复</font>{{else}}<font color="#FF0000">告警中</font>{{end}}
+- **告警级别**: {{$event.Severity}}级
+{{- if $event.RuleNote}}
+- **规则说明**: {{$event.RuleNote}}
+{{- end}}
+
+{{- if not $event.IsRecovered}}
+- **触发数值**: {{$event.TriggerValue}}G
+- **触发时间**: {{timeformat $event.TriggerTime}}
+- **持续时间**: {{humanizeDurationInterface $time_duration}}
+{{- else}}
+{{- if $event.AnnotationsJSON.recovery_value}}
+- **恢复数值**: {{formatDecimal $event.AnnotationsJSON.recovery_value 4}}G
+{{- end}}
+- **恢复时间**: {{timeformat $event.LastEvalTime}}
+- **总持续时间**: {{humanizeDurationInterface $time_duration}}
+{{- end}}
+
+**🔖 标签信息**:
+{{- range $key, $val := $event.TagsMap}}
+{{- if and (ne $key "rulename") (ne $val "") }}
+  > {{$key}}: `{{$val}}`
+{{- end}}
+{{- end}}
+
+---
+{{- /* 这里是单独向下展示的详情部分 */}}
+{{- if $event.AnnotationsJSON}}
+**📝 告警详情**:
+{{- range $key, $val := $event.AnnotationsJSON}}
+  > {{$key}}: `{{$val}} > 1.9`
+{{- end}}
+{{- end}}
+
+---
+**🔗 快捷操作**:
+[📊 事件详情]({{$domain}}/alert-his-events/{{$event.Id}}) | 
+[🚫 屏蔽1小时]({{$domain}}/alert-mutes/add?__event_id={{$event.Id}}) |
+{{if eq $event.Cate "prometheus"}}[📈 查看曲线]({{$domain}}/metric/explorer?__event_id={{$event.Id}}&mode=graph}}){{else}}[👀 查看数据]({{$domain}}/metric/explorer?__event_id={{$event.Id}}}){{end}}
+
+
+============================================================
+{{if $event.IsRecovered}}✅ 已恢复{{else}}🚨 告警中{{end}}: {{$event.RuleName}}
+
+{{if $event.TagsMap}}
+**标签信息**:
+{{- range $key, $val := $event.TagsMap}}
+- {{$key}}: `{{$val}}`
+{{- end}}
+{{- end}}
